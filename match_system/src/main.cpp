@@ -2,10 +2,13 @@
 // You should copy it to another filename to avoid overwriting it.
 
 #include "match_server/Match.h"
+#include "save_client/Save.h"
 #include <thrift/protocol/TBinaryProtocol.h>
 #include <thrift/server/TSimpleServer.h>
 #include <thrift/transport/TServerSocket.h>
 #include <thrift/transport/TBufferTransports.h>
+#include <thrift/transport/TSocket.h>
+#include <thrift/transport/TTransportUtils.h>
 
 #include <iostream>
 #include <thread>
@@ -18,7 +21,8 @@ using namespace ::apache::thrift::protocol;
 using namespace ::apache::thrift::transport;
 using namespace ::apache::thrift::server;
 
-using namespace  ::match_service;
+using namespace ::match_service;
+using namespace ::save_service;
 
 struct Task {
 	User user;
@@ -60,6 +64,22 @@ public:
 	// save match results
 	void save_reslut(uint32_t a, uint32_t b) {
 		printf("Match result is: %d %d\n", a, b);
+
+		std::shared_ptr<TTransport> socket(new TSocket("47.113.xxx.xxx", 9090)); // change to myserver
+		std::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
+		std::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
+		SaveClient client(protocol);
+
+		try {
+			transport->open();
+
+			client.save_data("my_server_username", "my_password_md5sum", a, b);
+
+			transport->close();
+		}
+		catch (TException& tx) {
+			std::cout << "ERROR: " << tx.what() << '\n';
+		}
 	}
 
 private:
